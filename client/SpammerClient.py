@@ -9,23 +9,29 @@ from sleekxmpp.exceptions import IqError, IqTimeout
 
 
 class SpammerClient(ClientXMPP):
+    # Client that keeps sending the given message to the given receiver until 
+    # stopped. Also replies to messsages that it receives.
 
-    def __init__(self, jid, password, to, msg):
+    def __init__(self, jid, password, to, msg, sleep):
         ClientXMPP.__init__(self, jid, password)
 
 	self.to = to
 	self.msg = msg
+        self.sleep = sleep
 
         self.add_event_handler("session_start", self.session_start)
         self.add_event_handler("message", self.message)
+
+        # Make the keepalive interval smaller so that the AWS load balancer 
+        # doesn't close the connection.
     	self.whitespace_keepalive_interval=30
 
     def session_start(self, event):
         self.send_presence()
         self.get_roster()
 
-	while True and not self.stop.is_set():
-            time.sleep(5)
+	while not self.stop.is_set():
+            time.sleep(self.sleep)
             xmpp.send_message(mto=self.to, mbody=self.msg, mtype='chat')
 
     def message(self, msg):
@@ -53,10 +59,16 @@ if __name__ == '__main__':
                     help="JID to use")
     optp.add_option("-p", "--password", dest="password",
                     help="password to use")
+    
+    # Message and recipient
     optp.add_option("-t", "--to", dest="to",
                     help="JID to send the message to")
     optp.add_option("-m", "--message", dest="message",
                     help="message to send")
+    optp.add_option("--sleep", dest="sleep",
+                    help="delay between each sent message in seconds")
+
+    # Server to connect
     optp.add_option("-s", "--connect_server", dest="server",
 		    help="server to connect")
     optp.add_option("--port", dest="port",
@@ -68,6 +80,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=opts.loglevel,
                         format='%(levelname)-8s %(message)s')
 
+    # Get the options from the user if not given as parameters.
     if opts.jid is None:
         opts.jid = raw_input("Username: ")
     if opts.password is None:
@@ -76,9 +89,16 @@ if __name__ == '__main__':
         opts.to = raw_input("Send To: ")
     if opts.message is None:
         opts.message = raw_input("Message: ")
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(levelname)-8s %(message)s')
 
-    xmpp = SpammerClient(opts.jid, opts.password, opts.to, opts.message)
-    xmpp.connect(address=(opts.server, opts.port))
+    # Defaults
+    if opts.port is None:
+        opts.port = 5222
+    if opts.sleep is None:
+        opts.sleep = 5
+
+    xmpp = SpammerClient(opts.jid, opts.password, opts.to, opts.message, opts.sleep)
+
+    server_address = () if opts.server is None else (opts.server, opts.port)
+
+    xmpp.connect(address=server_address)
     xmpp.process(block=True)
