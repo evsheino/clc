@@ -125,7 +125,8 @@ class MainWindow(object):
         self.main_body_text.config(yscrollcommand=self.body_text_scroll.set)
         self.main_body.pack()
 
-        self.main_body_text.insert(END, "Welcome to the chat program!")
+        self.main_body_text.insert(END, "Welcome to the chat program!\n")
+        self.main_body_text.insert(END, "Type '/msg receiver_id message' to send message 'message'\nto a user with id 'receiver_id'.")
         self.main_body_text.config(state=DISABLED)
 
         self.text_input = Entry(self.root, width=60)
