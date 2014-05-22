@@ -8,9 +8,10 @@ from sleekxmpp import ClientXMPP
 from sleekxmpp.exceptions import IqError, IqTimeout
 
 # FIXME: Command to close the app
+# FIXME: Remove closed windows from list
 
 class InteractiveClient(ClientXMPP):
-    """Interactive chat client"""
+    """Interactive chat client with GUI for a single user account"""
 
     def __init__(self, jid, password, gui):
         ClientXMPP.__init__(self, jid, password)
@@ -33,6 +34,8 @@ class InteractiveClient(ClientXMPP):
         self.gui.display_chat_message(msg)
 
     def display_roster(self, event):
+        #TODO: Move to MainWindow
+
         groups = self.client_roster.groups()
         for group in groups:
             self.gui.display_message(group)
@@ -53,6 +56,8 @@ class InteractiveClient(ClientXMPP):
                     if pres['status']:
                         self.gui.display_message(' %s' % pres['status'])
 
+    def get_domain(self):
+        return self.boundjid.bare[self.boundjid.bare.find('@'):]
 
 class ChatWindow(object):
     """Window for a chat with a partner"""
@@ -101,6 +106,8 @@ class ChatWindow(object):
         self.app.send_message(mto=self.buddy, mbody=msg['body'], mtype='chat')
 
 class MainWindow(object):
+    """The main window of the GUI"""
+
     def __init__(self):
         self.root = Tk()
         self.root.title("Chat")
@@ -130,6 +137,8 @@ class MainWindow(object):
         self.root.mainloop()
 
     def display_message(self, msg):
+        """Display a message in the main window"""
+
         self.main_body_text.config(state=NORMAL)
         self.main_body_text.insert(END, '\n')
         self.main_body_text.insert(END, msg)
@@ -137,15 +146,28 @@ class MainWindow(object):
         self.main_body_text.config(state=DISABLED)
 
     def process_command(self, event):
+        """Process the user's command."""
+
         command_array = self.text_input.get().split()
+
+        # Send chat message: /msg receiver[@domain] message
         if command_array[0].strip() == '/msg':
-            self.get_window(command_array[1].strip()).send_message(' '.join(command_array[2:]))
+            buddy = command_array[1]
+            if buddy.find('@') == -1:
+                # No domain specified, use the user's domain.
+                buddy += self.app.get_domain()
+            self.get_window(buddy).send_message(' '.join(command_array[2:]))
 
     def display_chat_message(self, msg):
+        """Display message in a chat window"""
+
         if msg['type'] in ('chat', 'normal'):
             self.get_window(str(msg['from'])).display_message(msg)
 
     def get_window(self, buddy):
+        """Get the chat window with the given buddy or create a new one
+        if a chat is not open yet"""
+
         cut = buddy.find('/')
         if cut != -1:
             buddy = buddy[:cut]
