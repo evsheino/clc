@@ -8,8 +8,6 @@ from sleekxmpp import ClientXMPP
 from sleekxmpp.exceptions import IqError, IqTimeout
 
 # FIXME: Command to close the app
-# FIXME: Display roster
-# FIXME: Start a chat with a buddy
 
 class InteractiveClient(ClientXMPP):
     """Interactive chat client"""
@@ -21,35 +19,51 @@ class InteractiveClient(ClientXMPP):
 
         self.add_event_handler("session_start", self.session_start, threaded=True)
         self.add_event_handler("message", self.message)
+        self.add_event_handler("roster_update", self.display_roster)
 
         # Make the keepalive interval smaller so that the AWS load balancer 
         # doesn't close the connection.
     	self.whitespace_keepalive_interval=30
-
-        self.chats = {}
 
     def session_start(self, event):
         self.send_presence()
         self.get_roster()
 
     def message(self, msg):
-        if msg['type'] in ('chat', 'normal'):
-            window = self.chats.get(msg['from'], None)
-            if window is None:
-               window = ChatWindow(self, self.gui, msg['from'])
-               self.chats[msg['from']] = window
-            
-            window.display_message(msg)
+        self.gui.display_chat_message(msg)
+
+    def display_roster(self, event):
+        groups = self.client_roster.groups()
+        for group in groups:
+            self.gui.display_message(group)
+            for jid in groups[group]:
+                sub = self.client_roster[jid]['subscription']
+                name = self.client_roster[jid]['name']
+                if self.client_roster[jid]['name']:
+                    self.gui.display_message(' %s (%s) [%s]' % (name, jid, sub))
+                else:
+                    self.gui.display_message(' %s [%s]' % (jid, sub))
+
+                connections = self.client_roster.presence(jid)
+                for res, pres in connections.items():
+                    show = 'available'
+                    if pres['show']:
+                        show = pres['show']
+                    self.gui.display_message(' - %s (%s)' % (res, show))
+                    if pres['status']:
+                        self.gui.display_message(' %s' % pres['status'])
+
 
 class ChatWindow(object):
     """Window for a chat with a partner"""
 
-    def __init__(self, app, root, buddy):
+    def __init__(self, app, main_window, buddy):
         self.buddy = buddy
-        self.root = root
+        self.main_window = main_window
         self.app = app
         
-        self.window = Toplevel(root)
+        self.window = Toplevel(main_window)
+        self.window.title(buddy)
 
         self.main_body = Frame(self.window, height=20, width=50)
 
@@ -65,7 +79,7 @@ class ChatWindow(object):
         self.main_body_text.config(state=DISABLED)
 
         self.text_input = Entry(self.window, width=60)
-        self.text_input.bind("<Return>", self.send_message)
+        self.text_input.bind("<Return>", self.process_input)
         self.text_input.pack()
 
     def display_message(self, msg):
@@ -76,12 +90,71 @@ class ChatWindow(object):
         self.main_body_text.yview(END)
         self.main_body_text.config(state=DISABLED)
 
-    def send_message(self, event):
+    def process_input(self, event):
+        self.send_message(self.text_input.get())
+
+    def send_message(self, msg_text):
         msg = {}
         msg['from'] = 'me'
-        msg['body'] = self.text_input.get()
+        msg['body'] = msg_text
         self.display_message(msg)
         self.app.send_message(mto=self.buddy, mbody=msg['body'], mtype='chat')
+
+class MainWindow(object):
+    def __init__(self):
+        self.root = Tk()
+        self.root.title("Chat")
+
+        self.windows = {}
+        
+        self.main_body = Frame(self.root, height=20, width=50)
+
+        self.main_body_text = Text(self.main_body)
+        self.body_text_scroll = Scrollbar(self.main_body)
+        self.main_body_text.focus_set()
+        self.body_text_scroll.pack(side=RIGHT, fill=Y)
+        self.main_body_text.pack(side=LEFT, fill=Y)
+        self.body_text_scroll.config(command=self.main_body_text.yview)
+        self.main_body_text.config(yscrollcommand=self.body_text_scroll.set)
+        self.main_body.pack()
+
+        self.main_body_text.insert(END, "Welcome to the chat program!")
+        self.main_body_text.config(state=DISABLED)
+
+        self.text_input = Entry(self.root, width=60)
+        self.text_input.bind("<Return>", self.process_command)
+        self.text_input.pack()
+
+    def start(self, app):
+        self.app = app
+        self.root.mainloop()
+
+    def display_message(self, msg):
+        self.main_body_text.config(state=NORMAL)
+        self.main_body_text.insert(END, '\n')
+        self.main_body_text.insert(END, msg)
+        self.main_body_text.yview(END)
+        self.main_body_text.config(state=DISABLED)
+
+    def process_command(self, event):
+        command_array = self.text_input.get().split()
+        if command_array[0].strip() == '/msg':
+            self.get_window(command_array[1].strip()).send_message(' '.join(command_array[2:]))
+
+    def display_chat_message(self, msg):
+        if msg['type'] in ('chat', 'normal'):
+            self.get_window(str(msg['from'])).display_message(msg)
+
+    def get_window(self, buddy):
+        cut = buddy.find('/')
+        if cut != -1:
+            buddy = buddy[:cut]
+        window = self.windows.get(buddy, None)
+        if window is None:
+           window = ChatWindow(self.app, self.root, buddy)
+           self.windows[buddy] = window
+
+        return window
 
 if __name__ == '__main__':
     # Setup the command line arguments.
@@ -127,29 +200,13 @@ if __name__ == '__main__':
         opts.port = 5222
 
     # Main GUI window
-    root = Tk()
-    root.title("Chat")
-
-    main_body = Frame(root, height=20, width=50)
-
-    main_body_text = Text(main_body)
-    body_text_scroll = Scrollbar(main_body)
-    main_body_text.focus_set()
-    body_text_scroll.pack(side=RIGHT, fill=Y)
-    main_body_text.pack(side=LEFT, fill=Y)
-    body_text_scroll.config(command=main_body_text.yview)
-    main_body_text.config(yscrollcommand=body_text_scroll.set)
-    main_body.pack()
-
-    main_body_text.insert(END, "Welcome to the chat program!")
-    main_body_text.config(state=DISABLED)
-
+    gui = MainWindow()
     # Initialize client
-    xmpp = InteractiveClient(opts.jid, opts.password, root)
+    xmpp = InteractiveClient(opts.jid, opts.password, gui)
 
     server_address = () if opts.server is None else (opts.server, opts.port)
 
     xmpp.connect(address=server_address)
     xmpp.process()
 
-    root.mainloop()
+    gui.start(xmpp)
