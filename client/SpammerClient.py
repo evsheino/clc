@@ -5,14 +5,11 @@ from optparse import OptionParser
 
 from sleekxmpp import ClientXMPP
 
-from csvwriter import CsvWriter
-
-
 class SpammerClient(ClientXMPP):
     # Client that keeps sending the given message to the given receiver until 
     # stopped. Also replies to messages that it receives.
 
-    def __init__(self, jid, password, to, msg, sleep, log_directory):
+    def __init__(self, jid, password, to, msg, sleep):
         ClientXMPP.__init__(self, jid, password)
 
         self.to = to
@@ -26,22 +23,13 @@ class SpammerClient(ClientXMPP):
         # doesn't close the connection.
         self.whitespace_keepalive_interval = 30
 
-        # Create a file for logging
-        time_string = time.strftime("%Y%m%d-%H%M%S")
-        self.logfile = log_directory + "today_" + time_string + ".csv"
-
     def session_start(self, event):
         self.send_presence()
         self.get_roster()
 
-        with open(self.logfile, 'wb+') as f:
-            csv_writer = CsvWriter(f)
-            for i in range(0, 5):
-                time.sleep(self.sleep)
-                xmpp.send_message(mto=self.to, mbody=self.msg, mtype='chat')
-                csv_writer.write_row(
-                    [int(round(time.time() * 1000)), self._id, self.boundjid.bare, self.to, self.msg, self.address[0],
-                     self.address[1]])
+        for i in xrange(0, 5):
+            time.sleep(self.sleep)
+            xmpp.send_message(mto=self.to, mbody=self.msg, mtype='chat')
 
         self.disconnect(wait=True)
 
@@ -91,8 +79,11 @@ if __name__ == '__main__':
     opts, args = optp.parse_args()
 
     # Setup logging.
+    time_string = time.strftime("%Y%m%d-%H%M%S")
+    logfile = opts.log_directory + "spammer_" + time_string + ".log"
     logging.basicConfig(level=opts.loglevel,
-                        format='%(levelname)-8s %(message)s')
+            format='%(levelname)-8s %(asctime)s: %(message)s',
+                        filename=logfile)
 
     # Get the options from the user if not given as parameters.
     if opts.jid is None:
@@ -112,7 +103,7 @@ if __name__ == '__main__':
     if opts.log_directory is None:
         opts.log_directory = "logs"
 
-    xmpp = SpammerClient(opts.jid, opts.password, opts.to, opts.message, opts.sleep, opts.log_directory)
+    xmpp = SpammerClient(opts.jid, opts.password, opts.to, opts.message, opts.sleep)
 
     server_address = () if opts.server is None else (opts.server, opts.port)
 
