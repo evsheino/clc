@@ -10,13 +10,13 @@ from sleekxmpp.exceptions import IqError, IqTimeout
 
 class SpammerClient(ClientXMPP):
     # Client that keeps sending the given message to the given receiver until 
-    # stopped. Also replies to messsages that it receives.
+    # stopped. Also replies to messages that it receives.
 
     def __init__(self, jid, password, to, msg, sleep):
         ClientXMPP.__init__(self, jid, password)
 
-	self.to = to
-	self.msg = msg
+        self.to = to
+        self.msg = msg
         self.sleep = sleep
 
         self.add_event_handler("session_start", self.session_start)
@@ -24,13 +24,13 @@ class SpammerClient(ClientXMPP):
 
         # Make the keepalive interval smaller so that the AWS load balancer 
         # doesn't close the connection.
-    	self.whitespace_keepalive_interval=30
+        self.whitespace_keepalive_interval = 30
 
     def session_start(self, event):
         self.send_presence()
         self.get_roster()
 
-	while not self.stop.is_set():
+        while not self.stop.is_set():
             time.sleep(self.sleep)
             xmpp.send_message(mto=self.to, mbody=self.msg, mtype='chat')
 
@@ -59,7 +59,7 @@ if __name__ == '__main__':
                     help="JID to use")
     optp.add_option("-p", "--password", dest="password",
                     help="password to use")
-    
+
     # Message and recipient
     optp.add_option("-t", "--to", dest="to",
                     help="JID to send the message to")
@@ -70,9 +70,9 @@ if __name__ == '__main__':
 
     # Server to connect
     optp.add_option("-s", "--connect_server", dest="server",
-		    help="server to connect")
+                    help="server to connect")
     optp.add_option("--port", dest="port",
-		    help="connect server port")
+                    help="connect server port")
 
     opts, args = optp.parse_args()
 
