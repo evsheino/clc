@@ -2,7 +2,6 @@ import logging
 import getpass
 import time
 from optparse import OptionParser
-
 from sleekxmpp import ClientXMPP
 
 class SpammerClient(ClientXMPP):
@@ -44,37 +43,37 @@ if __name__ == '__main__':
 
     # Output verbosity options.
     optp.add_option('-q', '--quiet', help='set logging to ERROR',
-                    action='store_const', dest='loglevel',
-                    const=logging.ERROR, default=logging.INFO)
+            action='store_const', dest='loglevel',
+            const=logging.ERROR, default=logging.INFO)
     optp.add_option('-d', '--debug', help='set logging to DEBUG',
-                    action='store_const', dest='loglevel',
-                    const=logging.DEBUG, default=logging.INFO)
+            action='store_const', dest='loglevel',
+            const=logging.DEBUG, default=logging.INFO)
     optp.add_option('-v', '--verbose', help='set logging to COMM',
-                    action='store_const', dest='loglevel',
-                    const=5, default=logging.INFO)
+            action='store_const', dest='loglevel',
+            const=5, default=logging.INFO)
 
-    # CSV export options.
+    # Logging directory.
     optp.add_option('-l', '--log', help="set directory for log files", dest="log_directory")
 
     # JID and password options.
     optp.add_option("-j", "--jid", dest="jid",
-                    help="JID to use")
+            help="JID to use")
     optp.add_option("-p", "--password", dest="password",
-                    help="password to use")
+            help="password to use")
 
     # Message and recipient
     optp.add_option("-t", "--to", dest="to",
-                    help="JID to send the message to")
+            help="JID to send the message to")
     optp.add_option("-m", "--message", dest="message",
-                    help="message to send")
+            help="message to send")
     optp.add_option("--sleep", dest="sleep",
-                    help="delay between each sent message in seconds")
+            help="delay between each sent message in seconds")
 
     # Server to connect
     optp.add_option("-s", "--connect_server", dest="server",
-                    help="server to connect")
+            help="server to connect")
     optp.add_option("--port", dest="port",
-                    help="connect server port")
+            help="connect server port")
 
     opts, args = optp.parse_args()
 
@@ -82,8 +81,8 @@ if __name__ == '__main__':
     time_string = time.strftime("%Y%m%d-%H%M%S")
     logfile = opts.log_directory + "spammer_" + time_string + ".log"
     logging.basicConfig(level=opts.loglevel,
-            format='%(levelname)-8s %(asctime)s: %(message)s',
-                        filename=logfile)
+            format='%(levelname)-8s %(asctime)s : %(message)s',
+            filename=logfile)
 
     # Get the options from the user if not given as parameters.
     if opts.jid is None:
