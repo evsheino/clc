@@ -1,3 +1,4 @@
+import os
 import logging
 import getpass
 import time
@@ -8,11 +9,12 @@ class SpammerClient(ClientXMPP):
     # Client that keeps sending the given message to the given receiver until 
     # stopped. Also replies to messages that it receives.
 
-    def __init__(self, jid, password, to, msg, sleep):
+    def __init__(self, jid, password, to, msg_count, sleep, msg_prefix):
         ClientXMPP.__init__(self, jid, password)
 
         self.to = to
-        self.msg = msg
+        self.msg_count = msg_count
+        self.msg_prefix = msg_prefix
         self.sleep = sleep
 
         self.add_event_handler("session_start", self.session_start)
@@ -26,9 +28,11 @@ class SpammerClient(ClientXMPP):
         self.send_presence()
         self.get_roster()
 
-        for i in xrange(0, self.msg):
+        for i in xrange(0, self.msg_count):
             time.sleep(self.sleep)
-            xmpp.send_message(mto=self.to, mbody=str(i), mtype='chat')
+            xmpp.send_message(mto=self.to, 
+                    mbody="{}/{}".format(self.msg_prefix, self.msg_count), 
+                    mtype='chat')
 
         # Wait for messages before disconnecting.
         time.sleep(self.sleep)
@@ -68,8 +72,10 @@ if __name__ == '__main__':
     # Message and recipient
     optp.add_option("-t", "--to", dest="to",
             help="JID to send the message to")
-    optp.add_option("-m", "--message", dest="message",
+    optp.add_option("-m", "--messages", dest="message",
             help="number of messages to send")
+    optp.add_option("--prefix", dest="prefix",
+            help="message prefix")
     optp.add_option("--sleep", dest="sleep",
             help="delay between each sent message in seconds")
 
@@ -92,7 +98,7 @@ if __name__ == '__main__':
         opts.message = raw_input("Number of messages: ")
 
     # Setup logging.
-    logfile = "{}{}_to_{}.log".format(opts.log_directory or "", opts.jid, opts.to)
+    logfile = os.path.join(opts.log_directory or "", "{}_to_{}.log".format(opts.jid, opts.to))
     logging.basicConfig(level=opts.loglevel,
             format='%(levelname)-8s %(asctime)s : %(message)s',
             filename=logfile)
@@ -104,8 +110,10 @@ if __name__ == '__main__':
         opts.sleep = 5
     if opts.log_directory is None:
         opts.log_directory = "logs"
+    if opts.prefix is None:
+        opts.prefix = "test"
 
-    xmpp = SpammerClient(opts.jid, opts.password, opts.to, int(opts.message), opts.sleep)
+    xmpp = SpammerClient(opts.jid, opts.password, opts.to, int(opts.message), opts.sleep, opts.prefix)
 
     server_address = () if opts.server is None else (opts.server, opts.port)
 
