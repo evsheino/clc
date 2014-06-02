@@ -89,7 +89,7 @@ if __name__ == '__main__':
         opts.message = raw_input("Number of messages: ")
 
     # Setup logging.
-    logfile = "{}{}_to_{}_{}.log".format(opts.log_directory or "", opts.jid, opts.to)
+    logfile = "{}{}_to_{}.log".format(opts.log_directory or "", opts.jid, opts.to)
     logging.basicConfig(level=opts.loglevel,
             format='%(levelname)-8s %(asctime)s : %(message)s',
             filename=logfile)
