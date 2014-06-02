@@ -33,8 +33,9 @@ class SpammerClient(ClientXMPP):
         self.disconnect(wait=True)
 
     def message(self, msg):
-        if msg['type'] in ('chat', 'normal'):
-            msg.reply("Thanks for sending\n%(body)s" % msg).send()
+        pass
+#        if msg['type'] in ('chat', 'normal'):
+#            msg.reply("Thanks for sending\n%(body)s" % msg).send()
 
 
 if __name__ == '__main__':
