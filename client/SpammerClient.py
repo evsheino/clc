@@ -78,13 +78,6 @@ if __name__ == '__main__':
 
     opts, args = optp.parse_args()
 
-    # Setup logging.
-    time_string = time.strftime("%Y%m%d-%H%M%S")
-    logfile = opts.log_directory + "spammer_" + time_string + ".log"
-    logging.basicConfig(level=opts.loglevel,
-            format='%(levelname)-8s %(asctime)s : %(message)s',
-            filename=logfile)
-
     # Get the options from the user if not given as parameters.
     if opts.jid is None:
         opts.jid = raw_input("Username: ")
@@ -94,6 +87,13 @@ if __name__ == '__main__':
         opts.to = raw_input("Send To: ")
     if opts.message is None:
         opts.message = raw_input("Message: ")
+
+    # Setup logging.
+    time_string = time.strftime("%Y%m%d-%H%M%S")
+    logfile = opts.log_directory + "{}_{}.log".format(opts.jid, time_string)
+    logging.basicConfig(level=opts.loglevel,
+            format='%(levelname)-8s %(asctime)s : %(message)s',
+            filename=logfile)
 
     # Defaults
     if opts.port is None:
