@@ -102,7 +102,7 @@ if __name__ == '__main__':
     if opts.log_directory is None:
         opts.log_directory = "logs"
 
-    xmpp = SpammerClient(opts.jid, opts.password, opts.to, opts.message, opts.sleep)
+    xmpp = SpammerClient(opts.jid, opts.password, opts.to, int(opts.message), opts.sleep)
 
     server_address = () if opts.server is None else (opts.server, opts.port)
 
