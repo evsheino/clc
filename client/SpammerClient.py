@@ -30,6 +30,9 @@ class SpammerClient(ClientXMPP):
             time.sleep(self.sleep)
             xmpp.send_message(mto=self.to, mbody=str(i), mtype='chat')
 
+        # Wait 5 seconds for messages before disconnecting.
+        time.sleep(5)
+
         self.disconnect(wait=True)
 
     def message(self, msg):
