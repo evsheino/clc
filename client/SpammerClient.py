@@ -26,7 +26,7 @@ class SpammerClient(ClientXMPP):
         self.send_presence()
         self.get_roster()
 
-        for i in xrange(0, 5):
+        for i in xrange(0, self.msg):
             time.sleep(self.sleep)
             xmpp.send_message(mto=self.to, mbody=i, mtype='chat')
 
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     optp.add_option("-t", "--to", dest="to",
             help="JID to send the message to")
     optp.add_option("-m", "--message", dest="message",
-            help="message to send")
+            help="number of messages to send")
     optp.add_option("--sleep", dest="sleep",
             help="delay between each sent message in seconds")
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     if opts.to is None:
         opts.to = raw_input("Send To: ")
     if opts.message is None:
-        opts.message = raw_input("Message: ")
+        opts.message = raw_input("Number of messages: ")
 
     # Setup logging.
     time_string = time.strftime("%Y%m%d-%H%M%S")
