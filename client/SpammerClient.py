@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     # Setup logging.
     time_string = time.strftime("%Y%m%d-%H%M%S")
-    logfile = opts.log_directory + "{}_to_{}_{}.log".format(opts.jid, opts.to, time_string)
+    logfile = "{}{}_to_{}_{}.log".format(opts.log_directory or "", opts.jid, opts.to, time_string)
     logging.basicConfig(level=opts.loglevel,
             format='%(levelname)-8s %(asctime)s : %(message)s',
             filename=logfile)
