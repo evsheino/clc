@@ -28,7 +28,7 @@ class SpammerClient(ClientXMPP):
 
         for i in xrange(0, self.msg):
             time.sleep(self.sleep)
-            xmpp.send_message(mto=self.to, mbody=i, mtype='chat')
+            xmpp.send_message(mto=self.to, mbody=str(i), mtype='chat')
 
         self.disconnect(wait=True)
 
