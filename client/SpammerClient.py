@@ -6,8 +6,10 @@ from optparse import OptionParser
 from sleekxmpp import ClientXMPP
 
 class SpammerClient(ClientXMPP):
-    # Client that keeps sending the given message to the given receiver until 
-    # stopped. Also replies to messages that it receives.
+    # Automated client for testing.
+    # Sends a message at session start (format: prefix/sequence_number)
+    # and waits for messages with the same prefix and replies to them
+    # with a message with the next sequence number.
 
     def __init__(self, jid, password, to, msg_count, sleep, msg_prefix):
         ClientXMPP.__init__(self, jid, password)
@@ -16,6 +18,8 @@ class SpammerClient(ClientXMPP):
         self.msg_count = msg_count
         self.msg_prefix = msg_prefix
         self.sleep = sleep
+
+        self.i = 0
 
         self.add_event_handler("session_start", self.session_start)
         self.add_event_handler("message", self.message)
@@ -28,21 +32,21 @@ class SpammerClient(ClientXMPP):
         self.send_presence()
         self.get_roster()
 
-        for i in xrange(0, self.msg_count):
-            time.sleep(self.sleep)
-            xmpp.send_message(mto=self.to, 
-                    mbody="{}/{}".format(self.msg_prefix, i), 
-                    mtype='chat')
-
-        # Wait for messages before disconnecting.
-        time.sleep(self.sleep)
-
-        self.disconnect(wait=True)
+        xmpp.send_message(mto=self.to, 
+                mbody="{}/{}".format(self.msg_prefix, self.i), 
+                mtype='chat')
 
     def message(self, msg):
-        pass
-#        if msg['type'] in ('chat', 'normal'):
-#            msg.reply("Thanks for sending\n%(body)s" % msg).send()
+        if msg['type'] in ('chat', 'normal'):
+            # Reply only to this test run's messages
+            if msg['body'].find(self.msg_prefix) != -1:
+                # Sleep before replying
+                time.sleep(self.sleep)
+                msg.reply("{}/{}".format(self.msg_prefix, self.i)).send()
+                self.i += 1
+
+                if self.i > self.msg_count:
+                    self.disconnect(wait=True)
 
 
 if __name__ == '__main__':
